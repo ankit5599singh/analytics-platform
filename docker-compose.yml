@@ -1,0 +1,103 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: analytics-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: analytics
+      MYSQL_USER: analytics_user
+      MYSQL_PASSWORD: local_dev_password
+      MYSQL_ROOT_PASSWORD: local_root_password
+    ports:
+      - '3307:3306'
+    volumes:
+      - analytics_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: analytics-api
+    restart: unless-stopped
+    env_file:
+      - ./apps/api/.env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: 'true'
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: '3306'
+      DB_DATABASE: analytics
+      DB_USERNAME: analytics_user
+      DB_PASSWORD: local_dev_password
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: database
+      ANALYTICS_SERVER_ENDPOINT: http://api:8000/api/v1/server/events
+    ports:
+      - '8000:8000'
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: analytics-worker
+    restart: unless-stopped
+    env_file:
+      - ./apps/api/.env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: 'true'
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: '3306'
+      DB_DATABASE: analytics
+      DB_USERNAME: analytics_user
+      DB_PASSWORD: local_dev_password
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: database
+      ANALYTICS_SERVER_ENDPOINT: http://api:8000/api/v1/server/events
+    command:
+      [
+        'php',
+        'artisan',
+        'queue:work',
+        'database',
+        '--sleep=3',
+        '--tries=3',
+        '--timeout=90',
+      ]
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+        NEXT_PUBLIC_ANALYTICS_WRITE_KEY: local-demo-write-key
+    container_name: analytics-web
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      ANALYTICS_READ_KEY: local-dashboard-read-secret-change-me
+    depends_on:
+      - api
+
+volumes:
+  analytics_mysql_data:

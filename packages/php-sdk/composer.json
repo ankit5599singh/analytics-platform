@@ -1,0 +1,13 @@
+{
+	"name": "analytics-platform/php-sdk",
+	"description": "Reusable PHP SDK for server-side analytics events",
+	"type": "library",
+	"autoload": {
+		"psr-4": {
+			"AnalyticsPlatform\\Sdk\\": "src/"
+		}
+	},
+	"require": {
+		"php": "^8.4"
+	}
+}
