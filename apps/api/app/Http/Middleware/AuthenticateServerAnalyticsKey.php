@@ -18,6 +18,7 @@ class AuthenticateServerAnalyticsKey
         }
 
         $request->attributes->set('trusted_server_sdk', true);
+
         return $next($request);
     }
 }

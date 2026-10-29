@@ -14,12 +14,14 @@ class AnalyticsQueryService
     {
         $start = CarbonImmutable::createFromFormat('!Y-m-d', $from, 'UTC');
         $endExclusive = CarbonImmutable::createFromFormat('!Y-m-d', $to, 'UTC')->addDay();
+
         return AnalyticsEvent::query()->where('occurred_at', '>=', $start)->where('occurred_at', '<', $endExclusive);
     }
 
     public function summary(string $from, string $to): array
     {
         $query = $this->eventsBetween($from, $to);
+
         return [
             'total_events' => (clone $query)->count(),
             'page_views' => (clone $query)->where('event_name', 'page_view')->count(),
@@ -67,7 +69,7 @@ class AnalyticsQueryService
             ->orderByDesc('views')
             ->limit(10)
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'url' => $row->page_url,
                 'title' => $row->page_title,
                 'views' => (int) $row->views,
@@ -82,6 +84,6 @@ class AnalyticsQueryService
             ->orderByDesc('total')
             ->limit(20)
             ->get()
-            ->map(fn($row) => ['event_name' => $row->event_name, 'total' => (int) $row->total]);
+            ->map(fn ($row) => ['event_name' => $row->event_name, 'total' => (int) $row->total]);
     }
 }

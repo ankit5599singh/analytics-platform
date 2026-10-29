@@ -37,8 +37,8 @@ class StoreAnalyticsEventRequest extends FormRequest
             'occurred_at' => [
                 'required',
                 'date',
-                'after_or_equal:' . now()->subDays(30)->toIso8601String(),
-                'before_or_equal:' . now()->addMinutes(5)->toIso8601String(),
+                'after_or_equal:'.now()->subDays(30)->toIso8601String(),
+                'before_or_equal:'.now()->addMinutes(5)->toIso8601String(),
             ],
             'page' => ['nullable', 'array'],
             'page.url' => ['nullable', 'string', 'max:2048'],

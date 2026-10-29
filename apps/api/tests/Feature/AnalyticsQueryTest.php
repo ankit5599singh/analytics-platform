@@ -149,4 +149,14 @@ class AnalyticsQueryTest extends TestCase
         $this->getJson('/api/v1/analytics/summary?from=2026-01-10&to=2026-01-09')->assertUnprocessable();
         $this->getJson('/api/v1/analytics/summary?from=2026-01-01&to=2026-04-01')->assertUnprocessable();
     }
+
+    public function test_summary_rejects_missing_read_key(): void
+    {
+        $this->withHeaders(['X-Analytics-Read-Key' => ''])->getJson('/api/v1/analytics/summary')->assertUnauthorized();
+    }
+
+    public function test_summary_rejects_invalid_read_key(): void
+    {
+        $this->withHeader('X-Analytics-Read-Key', 'wrong-key')->getJson('/api/v1/analytics/summary')->assertUnauthorized();
+    }
 }

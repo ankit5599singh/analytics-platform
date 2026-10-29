@@ -16,7 +16,9 @@ class SendOrderAnalyticsJob implements ShouldQueue
     use Queueable;
 
     public int $tries = 3;
+
     public array $backoff = [5, 30, 120];
+
     public readonly string $eventId;
 
     public function __construct(

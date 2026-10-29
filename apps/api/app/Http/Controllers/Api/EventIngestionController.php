@@ -29,7 +29,7 @@ class EventIngestionController extends Controller
 
     public function storeServer(StoreAnalyticsEventRequest $request): JsonResponse
     {
-        if (!$request->attributes->get('trusted_server_sdk', false)) {
+        if (! $request->attributes->get('trusted_server_sdk', false)) {
             return response()->json(['message' => 'Server authentication is required.'], 401);
         }
 
@@ -44,6 +44,7 @@ class EventIngestionController extends Controller
     private function ingestResponse(array $data): JsonResponse
     {
         $result = $this->ingestion->ingest($data);
+
         return response()->json($result['body'], $result['status']);
     }
 }

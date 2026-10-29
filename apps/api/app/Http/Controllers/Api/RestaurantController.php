@@ -28,7 +28,7 @@ class RestaurantController extends Controller
                 'required',
                 'string',
                 'distinct',
-                'in:' . implode(',', array_keys(config('restaurant.menu', []))),
+                'in:'.implode(',', array_keys(config('restaurant.menu', []))),
             ],
             'items.*.quantity' => [
                 'required',

@@ -8,6 +8,7 @@ use Tests\TestCase;
 class EventIngestionTest extends TestCase
 {
     use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,7 +38,6 @@ class EventIngestionTest extends TestCase
             ->postJson('/api/v1/events', $this->validEvent())
             ->assertAccepted()
             ->assertJsonPath('status', 'accepted');
-
         $this->assertDatabaseHas('analytics_events', [
             'event_id' => '019a8f01-7a22-7c10-8c5d-1a2b3c4d5e6f',
             'event_name' => 'page_view',
@@ -90,7 +90,6 @@ class EventIngestionTest extends TestCase
             ->postJson('/api/v1/server/events', $event)
             ->assertAccepted()
             ->assertJsonPath('status', 'accepted');
-
         $this->assertDatabaseHas('analytics_events', [
             'event_id' => $event['event_id'],
             'event_name' => 'order_created',
@@ -104,7 +103,6 @@ class EventIngestionTest extends TestCase
         $this->withHeader('X-Analytics-Server-Key', 'wrong-server-key')
             ->postJson('/api/v1/server/events', $event)
             ->assertUnauthorized();
-
         $this->assertDatabaseMissing('analytics_events', ['event_id' => $event['event_id']]);
     }
 
@@ -114,7 +112,33 @@ class EventIngestionTest extends TestCase
         $this->withHeader('X-Analytics-Server-Key', 'test-server-key')
             ->postJson('/api/v1/server/events', $event)
             ->assertUnprocessable();
-
         $this->assertDatabaseMissing('analytics_events', ['event_id' => $event['event_id']]);
+    }
+
+    public function test_it_rejects_events_with_timestamps_too_old(): void
+    {
+        $event = $this->validEvent(['occurred_at' => now()->subDays(31)->toIso8601String()]);
+        $this->withHeader('X-Analytics-Write-Key', 'test-write-key')
+            ->postJson('/api/v1/events', $event)
+            ->assertUnprocessable();
+        $this->assertDatabaseCount('analytics_events', 0);
+    }
+
+    public function test_it_rejects_events_with_timestamps_too_far_in_future(): void
+    {
+        $event = $this->validEvent(['occurred_at' => now()->addMinutes(6)->toIso8601String()]);
+        $this->withHeader('X-Analytics-Write-Key', 'test-write-key')
+            ->postJson('/api/v1/events', $event)
+            ->assertUnprocessable();
+        $this->assertDatabaseCount('analytics_events', 0);
+    }
+
+    public function test_it_rejects_oversized_properties(): void
+    {
+        $event = $this->validEvent(['properties' => ['payload' => str_repeat('x', 9000)]]);
+        $this->withHeader('X-Analytics-Write-Key', 'test-write-key')
+            ->postJson('/api/v1/events', $event)
+            ->assertUnprocessable();
+        $this->assertDatabaseCount('analytics_events', 0);
     }
 }

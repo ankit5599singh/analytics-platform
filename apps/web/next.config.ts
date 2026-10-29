@@ -1,21 +1,21 @@
-import type { NextConfig } from 'next';
-import path from 'node:path';
+import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
-	cacheComponents: true,
-	partialPrefetching: true,
+  cacheComponents: true,
+  partialPrefetching: true,
 
-	transpilePackages: ['@analytics-platform/browser-sdk'],
+  transpilePackages: ["@analytics-platform/browser-sdk"],
 
-	turbopack: {
-		root: path.resolve(process.cwd(), '../..'),
-		rules: {
-			'*.css': {
-				loaders: ['@tailwindcss/turbopack'],
-				as: '*.css',
-			},
-		},
-	},
+  turbopack: {
+    root: path.resolve(process.cwd(), "../.."),
+    rules: {
+      "*.css": {
+        loaders: ["@tailwindcss/turbopack"],
+        as: "*.css",
+      },
+    },
+  },
 };
 
 export default nextConfig;
