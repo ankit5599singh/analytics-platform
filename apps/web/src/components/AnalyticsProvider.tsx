@@ -1,75 +1,95 @@
-"use client";
+'use client';
 
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { usePathname } from "next/navigation";
-import { Analytics } from "@analytics-platform/browser-sdk";
+	createContext,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	type ReactNode,
+} from 'react';
+import { usePathname } from 'next/navigation';
+import { Analytics } from '@analytics-platform/browser-sdk';
+import { getPageDisplayName } from '@/lib/page-display-name';
 
-const AnalyticsContext = createContext<Analytics | null>(null);
+type AnalyticsContextValue = Pick<Analytics, 'track' | 'trackPageView'>;
 
-export function AnalyticsProvider({ children }: { children: ReactNode }) {
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const pathname = usePathname();
-  const previousPage = useRef<string | null>(null);
+const AnalyticsContext = createContext<AnalyticsContextValue | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    let client: Analytics | null = null;
+function getCurrentPageTitle(): string {
+	if (typeof window === 'undefined') {
+		return 'Untitled page';
+	}
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const writeKey = process.env.NEXT_PUBLIC_ANALYTICS_WRITE_KEY;
-
-    if (!apiUrl || !writeKey) {
-      console.error(
-        "Analytics environment variables are missing. Page-view tracking is disabled.",
-      );
-      return;
-    }
-
-    void Promise.resolve().then(() => {
-      if (!active) return;
-
-      try {
-        client = new Analytics({
-          apiUrl,
-          writeKey,
-          autoTrackPageViews: false,
-        });
-
-        if (active) {
-          setAnalytics(client);
-        }
-      } catch (error) {
-        console.error("Failed to initialize analytics SDK:", error);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!analytics || !pathname) return;
-    if (previousPage.current === pathname) return;
-
-    previousPage.current = pathname;
-    analytics.trackPageView();
-  }, [analytics, pathname]);
-
-  return (
-    <AnalyticsContext.Provider value={analytics}>
-      {children}
-    </AnalyticsContext.Provider>
-  );
+	return getPageDisplayName({
+		url: window.location.href,
+		title: document.title || null,
+	});
 }
 
-export function useAnalytics(): Analytics | null {
-  return useContext(AnalyticsContext);
+export function AnalyticsProvider({ children }: { children: ReactNode }) {
+	const clientRef = useRef<Analytics | null>(null);
+	const previousPage = useRef<string | null>(null);
+	const pathname = usePathname();
+
+	useEffect(() => {
+		const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+		const writeKey = process.env.NEXT_PUBLIC_ANALYTICS_WRITE_KEY;
+		if (!apiUrl || !writeKey) {
+			console.error(
+				'Analytics environment variables are missing. Tracking is disabled.',
+			);
+			return;
+		}
+
+		try {
+			if (!clientRef.current) {
+				clientRef.current = new Analytics({
+					apiUrl,
+					writeKey,
+					autoTrackPageViews: false,
+				});
+			}
+		} catch (error) {
+			console.error('Failed to initialize analytics SDK:', error);
+		}
+	}, []);
+
+	useEffect(() => {
+		const client = clientRef.current;
+		if (!client || !pathname) return;
+		if (previousPage.current === pathname) return;
+		previousPage.current = pathname;
+		client.trackPageView(getCurrentPageTitle());
+	}, [pathname]);
+
+	const analytics = useMemo<AnalyticsContextValue | null>(() => {
+		return {
+			track: (eventName, options) => {
+				clientRef.current?.track(eventName, {
+					...options,
+					pageTitle: options?.pageTitle ?? getCurrentPageTitle(),
+				});
+			},
+
+			trackPageView: (pageTitle) => {
+				clientRef.current?.trackPageView(pageTitle ?? getCurrentPageTitle());
+			},
+		};
+	}, []);
+
+	return (
+		<AnalyticsContext.Provider value={analytics}>
+			{children}
+		</AnalyticsContext.Provider>
+	);
+}
+
+export function useAnalytics(): AnalyticsContextValue {
+	const analytics = useContext(AnalyticsContext);
+	if (!analytics) {
+		throw new Error('useAnalytics must be used within an AnalyticsProvider.');
+	}
+
+	return analytics;
 }

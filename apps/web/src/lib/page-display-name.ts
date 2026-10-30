@@ -1,5 +1,3 @@
-import type { PopularPage } from '@/lib/api';
-
 const PAGE_NAMES: Record<string, string> = {
 	'/': 'Demo Home Page',
 	'/dashboard': 'Analytics Dashboard',
@@ -8,9 +6,12 @@ const PAGE_NAMES: Record<string, string> = {
 
 const FALLBACK_TITLE = 'Untitled page';
 
-export function getPageDisplayName(
-	page: Pick<PopularPage, 'url' | 'title'>,
-): string {
+interface PageInfo {
+	url: string;
+	title: string | null;
+}
+
+export function getPageDisplayName(page: PageInfo): string {
 	try {
 		const pathname = new URL(page.url, 'http://localhost').pathname;
 		const normalizedPath = pathname.replace(/\/+$/, '') || '/';

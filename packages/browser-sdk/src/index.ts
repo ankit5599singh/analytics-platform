@@ -6,6 +6,7 @@ export interface AnalyticsConfig {
 
 export interface TrackOptions {
 	userId?: string;
+	pageTitle?: string;
 	properties?: Record<string, unknown>;
 }
 
@@ -78,8 +79,8 @@ export class Analytics {
 		this.userId = userId;
 	}
 
-	trackPageView(): void {
-		this.track('page_view', { properties: {} });
+	trackPageView(pageTitle?: string): void {
+		this.track('page_view', { pageTitle, properties: {} });
 	}
 
 	track(eventName: string, options: TrackOptions = {}): void {
@@ -96,7 +97,7 @@ export class Analytics {
 			occurred_at: new Date().toISOString(),
 			page: {
 				url: window.location.href,
-				title: document.title,
+				title: options.pageTitle ?? document.title,
 				referrer: document.referrer || null,
 			},
 			properties: options.properties ?? {},
