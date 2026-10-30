@@ -36,24 +36,24 @@ class RestaurantService
             $total += $lineTotal;
         }
 
-        $order = DB::transaction(function () use ($validated, $orderItems, $total): Order {
-            return Order::create([
+        return DB::transaction(function () use ($validated, $orderItems, $total): Order {
+            $order = Order::create([
                 'order_number' => (string) Str::uuid(),
                 'customer_name' => $validated['customer_name'] ?? null,
                 'items' => $orderItems,
                 'total' => $total,
                 'status' => 'created',
             ]);
+
+            SendOrderAnalyticsJob::dispatch(
+                $order->order_number,
+                array_sum(array_column($orderItems, 'quantity')),
+                $total,
+                $validated['anonymous_id'] ?? null,
+                $validated['session_id'] ?? null,
+            )->afterCommit();
+
+            return $order;
         });
-
-        SendOrderAnalyticsJob::dispatch(
-            $order->order_number,
-            array_sum(array_column($orderItems, 'quantity')),
-            $total,
-            $validated['anonymous_id'] ?? null,
-            $validated['session_id'] ?? null,
-        )->afterCommit();
-
-        return $order;
     }
 }

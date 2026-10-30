@@ -15,7 +15,7 @@ class SendOrderAnalyticsJob implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries = 4;
 
     public array $backoff = [5, 30, 120];
 
